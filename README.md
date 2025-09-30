@@ -1,8 +1,8 @@
-# HarmonyOS M3U8 下载器
+# HarmonyOS M3U8 下载器 M3U8Downloader
 
 一个功能强大的HarmonyOS应用，专门用于下载和处理M3U8视频流。支持加密视频解密、并发下载、断点续传等高级功能。
 
-## 🚀 功能特性
+## 功能特性
 
 ### 核心功能
 - **M3U8解析**: 自动解析M3U8播放列表文件
@@ -52,7 +52,7 @@ HarmonyM3U8Downloader/
 └── oh-package.json5            # 依赖管理
 ```
 
-## 📦 依赖库
+## 依赖库
 
 - `@ohos/crypto-js`: 用于AES加密解密功能
 
@@ -224,7 +224,7 @@ hdc hilog | grep M3U8Downloader
 - 实现并发下载和进度监控
 - 添加完整的错误处理机制
 
-## 🤝 贡献指南
+## 贡献指南
 
 1. Fork 项目
 2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
@@ -236,12 +236,10 @@ hdc hilog | grep M3U8Downloader
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
 
-## 🙏 致谢
+## 致谢
 
 - HarmonyOS 开发团队
 - @ohos/crypto-js 库的贡献者
 - 所有测试和反馈的用户
-
----
 
 **注意**: 请确保您有权下载相关视频内容，并遵守相关法律法规和版权要求。
