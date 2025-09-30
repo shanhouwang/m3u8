@@ -1,0 +1,56 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/luojilab/.ohos/config/default_HarmonyM3U8Downloader_CSYcRZV0dcVNy4N2jOys9tWvthJ9RQNZLO_SOr6w6rY=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B80420DA612458100090BE47E0D23BBCC9F1D937B02C33A9664412DBDCE36EE796C90F90CBBC7FB",
+          "profile": "/Users/luojilab/.ohos/config/default_HarmonyM3U8Downloader_CSYcRZV0dcVNy4N2jOys9tWvthJ9RQNZLO_SOr6w6rY=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/luojilab/.ohos/config/default_HarmonyM3U8Downloader_CSYcRZV0dcVNy4N2jOys9tWvthJ9RQNZLO_SOr6w6rY=.p12",
+          "storePassword": "0000001BC2A74B01B3C89B2D9AA1AD0E876504AA405E3197EBAE986BAB710C1A063A92AFC0BA8EA2F44AAF"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "5.0.5(17)",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

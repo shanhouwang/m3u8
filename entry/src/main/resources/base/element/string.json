@@ -1,0 +1,24 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "label"
+    },
+    {
+      "name": "internet_permission_reason",
+      "value": "用于下载M3U8视频文件和片段"
+    },
+    {
+      "name": "network_info_permission_reason",
+      "value": "用于检测网络状态以优化下载体验"
+    }
+  ]
+}
