@@ -4,7 +4,7 @@
 import { cryptoFramework } from '@kit.CryptoArchitectureKit';
 import { CryptoJS } from '@ohos/crypto-js';
 
-const TAG = 'CryptoManager';
+const TAG = 'M3U8Downloader, CryptoManager';
 
 export class CryptoManager {
   /**

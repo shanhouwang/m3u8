@@ -40,11 +40,4 @@ export class M3U8Utils {
       return `${bytesPerSecond.toFixed(2)} B/s`;
     }
   }
-
-  /**
-   * 获取当前线程信息
-   */
-  static getThreadInfo(): string {
-    return ''
-  }
 }

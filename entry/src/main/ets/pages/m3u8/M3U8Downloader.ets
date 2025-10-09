@@ -1,5 +1,5 @@
 /**
- * M3U8下载器主类 - 重构版本
+ * M3U8下载器主类
  */
 import common from '@ohos.app.ability.common';
 import { TSInfo, KeyInfo, PerformanceConfig, DownloadCallbacks } from './types';
@@ -21,7 +21,7 @@ export class M3U8Downloader {
   private isCanceled: boolean = false;
   
   // 性能优化配置
-  private maxConcurrentDownloads: number = 6; // 最大并发下载数
+  private maxConcurrentDownloads: number = 8; // 最大并发下载数
   private retryCount: number = 3; // 重试次数
   private timeoutMs: number = 30000; // 超时时间30秒
 
@@ -36,7 +36,7 @@ export class M3U8Downloader {
   /**
    * 设置回调函数
    */
-  setCallback(callbacks: DownloadCallbacks): void {
+  setCallbacks(callbacks: DownloadCallbacks): void {
     this.callbacks = callbacks;
   }
 
@@ -119,14 +119,11 @@ export class M3U8Downloader {
   /**
    * 开始下载
    */
-  async startDownload(m3u8Url: string, outputFileName?: string): Promise<void> {
+  async startDownload(m3u8Url: string, outputFileName: string): Promise<void> {
+    this.tsList = []
     const startTime = Date.now();
     const startTimeStr = new Date(startTime).toLocaleString('zh-CN');
     console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 开始下载 - 开始时间: ${startTimeStr}`);
-
-    if (!outputFileName) {
-      outputFileName = '测试';
-    }
 
     try {
       this.isCanceled = false;
@@ -150,7 +147,7 @@ export class M3U8Downloader {
       }
 
       // 创建临时目录
-      const tempDir = this.context.cacheDir + '/ts_segments/';
+      const tempDir = this.context.cacheDir + '/ts_segments/' + outputFileName + '/';
       await FileManager.ensureDir(tempDir);
 
       // 并发下载所有TS分片
@@ -164,7 +161,7 @@ export class M3U8Downloader {
       }
 
       // 合并文件
-      const outputPath = this.context.cacheDir + `/${outputFileName}-shanhouwang.ts`;
+      const outputPath = this.context.cacheDir + `/${outputFileName}.ts`;
       console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 开始合并TS片段为视频文件: ${outputPath}`);
       await FileManager.mergeFiles(downloadedFiles, outputPath);
 
@@ -212,7 +209,7 @@ export class M3U8Downloader {
     let completedCount = 0;
 
     console.log(M3U8Downloader.TAG,
-      `[${M3U8Utils.getThreadInfo()}] 开始并发下载 ${this.tsList.length} 个片段，最大并发数: ${this.maxConcurrentDownloads}`);
+      `开始并发下载 ${this.tsList.length} 个片段，最大并发数: ${this.maxConcurrentDownloads}`);
 
     // 创建所有下载任务
     const downloadTasks = this.tsList.map((tsUrl, index) => {
@@ -221,9 +218,9 @@ export class M3U8Downloader {
           await this.downloadSingleSegmentWithRetry(index, tempDir, keyData, downloadedFiles);
           completedCount++;
           this.updateProgressWithCount(completedCount);
-          console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 片段 ${index + 1}/${this.tsList.length} 下载完成`);
+          console.log(M3U8Downloader.TAG, `片段 ${index + 1}/${this.tsList.length} 下载完成`);
         } catch (error) {
-          console.error(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 片段 ${index + 1} 下载失败:`, error);
+          console.error(M3U8Downloader.TAG, `片段 ${index + 1} 下载失败:`, error);
           throw new Error(error);
         }
       };
@@ -236,7 +233,7 @@ export class M3U8Downloader {
       () => this.isCanceled
     );
 
-    console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 所有片段下载完成，共 ${this.tsList.length} 个`);
+    console.log(M3U8Downloader.TAG, `所有片段下载完成，共 ${this.tsList.length} 个`);
     return downloadedFiles;
   }
 
@@ -259,7 +256,7 @@ export class M3U8Downloader {
 
       try {
         console.log(M3U8Downloader.TAG, 
-          `[${M3U8Utils.getThreadInfo()}] 下载片段 ${index + 1}/${this.tsList.length} (尝试 ${attempt}/${this.retryCount}): ${tsUrl}`);
+          `下载片段 ${index + 1}/${this.tsList.length} (尝试 ${attempt}/${this.retryCount}): ${tsUrl}`);
 
         const tsData = await NetworkDownloader.downloadBinaryWithTimeout(tsUrl, this.timeoutMs);
 
@@ -272,12 +269,12 @@ export class M3U8Downloader {
         this.downloadedSize += finalData.length;
 
         console.log(M3U8Downloader.TAG, 
-          `[${M3U8Utils.getThreadInfo()}] 片段 ${index + 1} 下载成功: ${finalData.length} 字节`);
+          `片段 ${index + 1} 下载成功: ${finalData.length} 字节`);
         return; // 成功，退出重试循环
 
       } catch (error) {
         console.error(M3U8Downloader.TAG,
-          `[${M3U8Utils.getThreadInfo()}] 片段 ${index + 1} 下载失败 (尝试 ${attempt}/${this.retryCount}):`, error);
+          `片段 ${index + 1} 下载失败 (尝试 ${attempt}/${this.retryCount}):`, error);
 
         if (attempt === this.retryCount) {
           const errorMsg = `片段 ${index + 1} 下载失败，已重试 ${this.retryCount} 次: ${error.message}`;
@@ -294,7 +291,7 @@ export class M3U8Downloader {
    * 下载密钥
    */
   private async downloadKey(keyUrl: string): Promise<Uint8Array> {
-    console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 下载密钥: ${keyUrl}`);
+    console.log(M3U8Downloader.TAG, `下载密钥: ${keyUrl}`);
     const fullUrl = keyUrl.startsWith('http') ? keyUrl : this.baseUrl + keyUrl;
     return await NetworkDownloader.downloadBinary(fullUrl);
   }
@@ -310,9 +307,8 @@ export class M3U8Downloader {
       const avgSize = this.downloadedSize / completedCount;
       this.totalSize = avgSize * this.tsList.length;
     }
-
     console.log(M3U8Downloader.TAG,
-      `[${M3U8Utils.getThreadInfo()}] 下载进度: ${progress.toFixed(1)}% (${completedCount}/${this.tsList.length})`);
+      `下载进度: ${progress.toFixed(1)}% (${completedCount}/${this.tsList.length})`);
     this.callbacks.onProgress?.(progress, this.downloadedSize, this.totalSize);
   }
 }
@@ -324,3 +320,4 @@ export { NetworkDownloader } from './downloader';
 export { FileManager } from './fileManager';
 export { ConcurrencyManager } from './concurrency';
 export { M3U8Utils } from './utils';
+export { M3U8DownloaderFactory } from './M3U8DownloaderFactory';

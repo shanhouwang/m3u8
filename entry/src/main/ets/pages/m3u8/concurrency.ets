@@ -2,7 +2,7 @@
  * 并发控制模块
  */
 
-const TAG = 'ConcurrencyManager';
+const TAG = 'M3U8Downloader, ConcurrencyManager';
 
 export class ConcurrencyManager {
   /**

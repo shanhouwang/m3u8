@@ -1,9 +1,8 @@
-import { M3U8Downloader, DownloadCallbacks } from './m3u8/M3U8Downloader';
+import { M3U8DownloaderFactory, DownloadCallbacks } from './m3u8/M3U8Downloader';
 
 @Entry
 @Component
 struct Index {
-  downloader = new M3U8Downloader(getContext(this))
   // 定义回调函数
   callbacks: DownloadCallbacks = {
     // 进度回调
@@ -24,15 +23,14 @@ struct Index {
   };
 
   aboutToAppear(): void {
-    // 设置回调
-    this.downloader.setCallback(this.callbacks);
   }
 
   build() {
     Stack() {
       Button('点击下载').width(100).height(100)
         .onClick(() => {
-          this.downloader.startDownload('https://m.igetget.com/ddmedia/public/v1/m3u8/3688047505834020/271/m.m3u8')
+          M3U8DownloaderFactory.start('https://m.igetget.com/ddmedia/public/v1/m3u8/3688047505834020/271/m.m3u8',
+            '名字', this.callbacks)
         })
     }
     .height('100%')

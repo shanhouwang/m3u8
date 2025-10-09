@@ -4,7 +4,7 @@
 import fs from '@ohos.file.fs';
 import { ReadOptions, WriteOptions } from '@kit.CoreFileKit';
 
-const TAG = 'FileManager';
+const TAG = 'M3U8Downloader, FileManager';
 
 export class FileManager {
 
