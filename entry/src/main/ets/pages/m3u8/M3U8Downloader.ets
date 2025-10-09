@@ -30,7 +30,7 @@ export class M3U8Downloader {
 
   constructor(context: common.Context) {
     this.context = context;
-    console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 初始化M3U8下载器`);
+    console.log(M3U8Downloader.TAG, `初始化M3U8下载器`);
   }
 
   /**
@@ -47,17 +47,17 @@ export class M3U8Downloader {
     if (options.maxConcurrentDownloads !== undefined) {
       this.maxConcurrentDownloads = Math.max(1, Math.min(20, options.maxConcurrentDownloads));
       console.log(M3U8Downloader.TAG,
-        `[${M3U8Utils.getThreadInfo()}] 设置最大并发下载数: ${this.maxConcurrentDownloads}`);
+        `设置最大并发下载数: ${this.maxConcurrentDownloads}`);
     }
 
     if (options.retryCount !== undefined) {
       this.retryCount = Math.max(1, Math.min(5, options.retryCount));
-      console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 设置重试次数: ${this.retryCount}`);
+      console.log(M3U8Downloader.TAG, `设置重试次数: ${this.retryCount}`);
     }
 
     if (options.timeoutMs !== undefined) {
       this.timeoutMs = Math.max(5000, Math.min(60000, options.timeoutMs));
-      console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 设置超时时间: ${this.timeoutMs}毫秒`);
+      console.log(M3U8Downloader.TAG, `设置超时时间: ${this.timeoutMs}毫秒`);
     }
   }
 
@@ -65,7 +65,7 @@ export class M3U8Downloader {
    * 解析M3U8内容
    */
   private parseM3U8(content: string): void {
-    console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 解析M3U8内容: ${content}`);
+    console.log(M3U8Downloader.TAG, `解析M3U8内容: ${content}`);
     const lines = content.split('\n');
     let currentDuration = 0;
 
@@ -81,7 +81,7 @@ export class M3U8Downloader {
           url: line
         });
       } else if (line.startsWith('#EXT-X-MAP:') || line.startsWith('#EXT-X-BYTERANGE:')) {
-        console.warn(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 不支持的M3U8标签: ${line}`);
+        console.warn(M3U8Downloader.TAG, `不支持的M3U8标签: ${line}`);
       }
     }
   }
@@ -113,7 +113,7 @@ export class M3U8Downloader {
     if (uri) {
       this.keyInfo = { uri, iv };
     }
-    console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 解析密钥信息: ${JSON.stringify(this.keyInfo)}`);
+    console.log(M3U8Downloader.TAG, `解析密钥信息: ${JSON.stringify(this.keyInfo)}`);
   }
 
   /**
@@ -123,7 +123,7 @@ export class M3U8Downloader {
     this.tsList = []
     const startTime = Date.now();
     const startTimeStr = new Date(startTime).toLocaleString('zh-CN');
-    console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 开始下载 - 开始时间: ${startTimeStr}`);
+    console.log(M3U8Downloader.TAG, `开始下载 - 开始时间: ${startTimeStr}`);
 
     try {
       this.isCanceled = false;
@@ -152,7 +152,7 @@ export class M3U8Downloader {
 
       // 并发下载所有TS分片
       console.log(M3U8Downloader.TAG,
-        `[${M3U8Utils.getThreadInfo()}] 开始并发下载 ${this.tsList.length} 个TS片段，并发数: ${this.maxConcurrentDownloads}`);
+        `开始并发下载 ${this.tsList.length} 个TS片段，并发数: ${this.maxConcurrentDownloads}`);
       const downloadedFiles: string[] = await this.downloadAllSegmentsConcurrently(tempDir, keyData);
 
       if (this.isCanceled) {
@@ -162,7 +162,7 @@ export class M3U8Downloader {
 
       // 合并文件
       const outputPath = this.context.cacheDir + `/${outputFileName}.ts`;
-      console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 开始合并TS片段为视频文件: ${outputPath}`);
+      console.log(M3U8Downloader.TAG, `开始合并TS片段为视频文件: ${outputPath}`);
       await FileManager.mergeFiles(downloadedFiles, outputPath);
 
       // 清理临时文件
@@ -174,11 +174,11 @@ export class M3U8Downloader {
       const totalTime = endTime - startTime;
       const totalTimeStr = M3U8Utils.formatDuration(totalTime);
 
-      console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] M3U8视频下载完成: ${outputPath}`);
-      console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 下载完成 - 结束时间: ${endTimeStr}`);
-      console.log(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 总耗时: ${totalTimeStr} (${totalTime}ms)`);
+      console.log(M3U8Downloader.TAG, `M3U8视频下载完成: ${outputPath}`);
+      console.log(M3U8Downloader.TAG, `下载完成 - 结束时间: ${endTimeStr}`);
+      console.log(M3U8Downloader.TAG, `总耗时: ${totalTimeStr} (${totalTime}ms)`);
       console.log(M3U8Downloader.TAG,
-        `[${M3U8Utils.getThreadInfo()}] 平均速度: ${M3U8Utils.calculateAverageSpeed(this.downloadedSize, totalTime)}`);
+        `平均速度: ${M3U8Utils.calculateAverageSpeed(this.downloadedSize, totalTime)}`);
       
       this.callbacks.onComplete?.(outputPath);
 
@@ -188,8 +188,8 @@ export class M3U8Downloader {
       const failedTime = errorTime - startTime;
       const failedTimeStr = M3U8Utils.formatDuration(failedTime);
 
-      console.error(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 下载失败 - 失败时间: ${errorTimeStr}`);
-      console.error(M3U8Downloader.TAG, `[${M3U8Utils.getThreadInfo()}] 失败前耗时: ${failedTimeStr} (${failedTime}ms)`);
+      console.error(M3U8Downloader.TAG, `下载失败 - 失败时间: ${errorTimeStr}`);
+      console.error(M3U8Downloader.TAG, `失败前耗时: ${failedTimeStr} (${failedTime}ms)`);
       this.callbacks.onError?.(error);
     }
   }
