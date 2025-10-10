@@ -24,7 +24,6 @@ export class M3U8Downloader {
   private maxConcurrentDownloads: number = 8; // 最大并发下载数
   private retryCount: number = 3; // 重试次数
   private timeoutMs: number = 30000; // 超时时间30秒
-  private skipIfIncomplete: boolean = false; // 未完成时是否跳过本次下载
 
   // 回调函数
   private callbacks: DownloadCallbacks = {};
@@ -59,10 +58,6 @@ export class M3U8Downloader {
     if (options.timeoutMs !== undefined) {
       this.timeoutMs = Math.max(5000, Math.min(60000, options.timeoutMs));
       console.log(M3U8Downloader.TAG, `设置超时时间: ${this.timeoutMs}毫秒`);
-    }
-    if (options.skipIfIncomplete !== undefined) {
-      this.skipIfIncomplete = !!options.skipIfIncomplete;
-      console.log(M3U8Downloader.TAG, `设置未完成时跳过: ${this.skipIfIncomplete}`);
     }
   }
 
@@ -170,13 +165,6 @@ export class M3U8Downloader {
         this.downloadedSize += size;
       }
 
-      // 若启用“未完成时跳过”，且存在部分已完成但未全部完成，则直接跳过本次下载
-      if (this.skipIfIncomplete && completedCount > 0 && completedCount < this.tsList.length) {
-        console.log(M3U8Downloader.TAG, `检测到未完成进度(${completedCount}/${this.tsList.length})，已启用跳过，本次不下载。`);
-        this.updateProgressWithCount(completedCount);
-        return;
-      }
-
       // 以现有片段为准同步进度文件
       const completedArr: number[] = [];
       for (let i = 0; i < existing.length; i++) {
@@ -188,8 +176,8 @@ export class M3U8Downloader {
       // 并发下载所有TS分片（会跳过已完成的）
       console.log(M3U8Downloader.TAG,
         `开始并发下载 ${this.tsList.length} 个TS片段，并发数: ${this.maxConcurrentDownloads}，已完成: ${completedCount}`);
-      this.updateProgressWithCount(completedCount);
-      const downloadedFilesResult: string[] = await this.downloadAllSegmentsConcurrently(tempDir, keyData, downloadedFiles);
+      this.updateProgressWithCount(completedCount, outputFileName);
+      const downloadedFilesResult: string[] = await this.downloadAllSegmentsConcurrently(tempDir, keyData, downloadedFiles, outputFileName);
 
       if (this.isCanceled) {
         await FileManager.cleanupTempFiles(downloadedFiles);
@@ -218,7 +206,7 @@ export class M3U8Downloader {
       console.log(M3U8Downloader.TAG,
         `平均速度: ${M3U8Utils.calculateAverageSpeed(this.downloadedSize, totalTime)}`);
       
-      this.callbacks.onComplete?.(outputPath);
+      this.callbacks.onComplete?.(outputFileName, outputPath);
 
     } catch (error) {
       const errorTime = Date.now();
@@ -228,7 +216,7 @@ export class M3U8Downloader {
 
       console.error(M3U8Downloader.TAG, `下载失败 - 失败时间: ${errorTimeStr}`);
       console.error(M3U8Downloader.TAG, `失败前耗时: ${failedTimeStr} (${failedTime}ms)`);
-      this.callbacks.onError?.(error);
+      this.callbacks.onError?.(outputFileName, error);
     }
   }
 
@@ -242,7 +230,7 @@ export class M3U8Downloader {
   /**
    * 并发下载所有片段
    */
-  private async downloadAllSegmentsConcurrently(tempDir: string, keyData: Uint8Array | null, downloadedFiles: string[]): Promise<string[]> {
+  private async downloadAllSegmentsConcurrently(tempDir: string, keyData: Uint8Array | null, downloadedFiles: string[], outputFileName: string): Promise<string[]> {
     let completedCount = downloadedFiles.filter(p => !!p).length;
 
     console.log(M3U8Downloader.TAG,
@@ -259,7 +247,7 @@ export class M3U8Downloader {
           }
           await this.downloadSingleSegmentWithRetry(index, tempDir, keyData, downloadedFiles);
           completedCount++;
-          this.updateProgressWithCount(completedCount);
+          this.updateProgressWithCount(completedCount, outputFileName);
           console.log(M3U8Downloader.TAG, `片段 ${index + 1}/${this.tsList.length} 下载完成`);
         } catch (error) {
           console.error(M3U8Downloader.TAG, `片段 ${index + 1} 下载失败:`, error);
@@ -344,7 +332,7 @@ export class M3U8Downloader {
   /**
    * 基于完成数量更新进度
    */
-  private updateProgressWithCount(completedCount: number): void {
+  private updateProgressWithCount(completedCount: number, outputFileName: string): void {
     const progress = this.tsList.length > 0 ? (completedCount / this.tsList.length) * 100 : 0;
 
     // 估算总大小
@@ -354,7 +342,7 @@ export class M3U8Downloader {
     }
     console.log(M3U8Downloader.TAG,
       `下载进度: ${progress.toFixed(1)}% (${completedCount}/${this.tsList.length})`);
-    this.callbacks.onProgress?.(progress, this.downloadedSize, this.totalSize);
+    this.callbacks.onProgress?.(outputFileName, progress, this.downloadedSize, this.totalSize);
   }
 }
 

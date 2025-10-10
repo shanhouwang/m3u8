@@ -34,11 +34,11 @@ export interface PerformanceConfig {
  */
 export interface DownloadCallbacks {
   // 下载进度回调
-  onProgress?: (progress: number, downloaded: number, total: number) => void;
+  onProgress?: (outputFileName: string, progress: number, downloaded: number, total: number) => void;
   // 完成回调
-  onComplete?: (outputPath: string) => void;
+  onComplete?: (outputFileName: string, outputPath: string) => void;
   // 错误回调
-  onError?: (error: Error) => void;
+  onError?: (outputFileName: string, error: Error) => void;
 }
 
 /**
