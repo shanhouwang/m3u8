@@ -24,6 +24,9 @@ export interface PerformanceConfig {
 
   /** 超时时间毫秒 (5000-60000，默认30000) */
   timeoutMs?: number;
+
+  /** 检测到未完成进度时本次是否直接跳过下载（默认false） */
+  skipIfIncomplete?: boolean;
 }
 
 /**
@@ -36,4 +39,20 @@ export interface DownloadCallbacks {
   onComplete?: (outputPath: string) => void;
   // 错误回调
   onError?: (error: Error) => void;
+}
+
+/**
+ * 进度记录（用于持久化）
+ */
+export interface ProgressRecord {
+  total: number;
+  completed: number[];
+}
+
+/**
+ * 片段文件状态（索引与大小）
+ */
+export interface SegmentStat {
+  index: number;
+  size: number;
 }

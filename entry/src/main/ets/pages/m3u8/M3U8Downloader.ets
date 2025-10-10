@@ -2,7 +2,7 @@
  * M3U8下载器主类
  */
 import common from '@ohos.app.ability.common';
-import { TSInfo, KeyInfo, PerformanceConfig, DownloadCallbacks } from './types';
+import { TSInfo, KeyInfo, PerformanceConfig, DownloadCallbacks, ProgressRecord } from './types';
 import { CryptoManager } from './crypto';
 import { NetworkDownloader } from './downloader';
 import { FileManager } from './fileManager';
@@ -24,6 +24,7 @@ export class M3U8Downloader {
   private maxConcurrentDownloads: number = 8; // 最大并发下载数
   private retryCount: number = 3; // 重试次数
   private timeoutMs: number = 30000; // 超时时间30秒
+  private skipIfIncomplete: boolean = false; // 未完成时是否跳过本次下载
 
   // 回调函数
   private callbacks: DownloadCallbacks = {};
@@ -58,6 +59,10 @@ export class M3U8Downloader {
     if (options.timeoutMs !== undefined) {
       this.timeoutMs = Math.max(5000, Math.min(60000, options.timeoutMs));
       console.log(M3U8Downloader.TAG, `设置超时时间: ${this.timeoutMs}毫秒`);
+    }
+    if (options.skipIfIncomplete !== undefined) {
+      this.skipIfIncomplete = !!options.skipIfIncomplete;
+      console.log(M3U8Downloader.TAG, `设置未完成时跳过: ${this.skipIfIncomplete}`);
     }
   }
 
@@ -150,10 +155,41 @@ export class M3U8Downloader {
       const tempDir = this.context.cacheDir + '/ts_segments/' + outputFileName + '/';
       await FileManager.ensureDir(tempDir);
 
-      // 并发下载所有TS分片
+      // 尝试加载历史进度并恢复
+      const progress = await FileManager.loadProgress(tempDir);
+      const downloadedFiles: string[] = new Array(this.tsList.length);
+
+      // 统计已存在片段文件，恢复 downloadedSize 与已完成计数
+      const existing = FileManager.listExistingSegments(tempDir, this.tsList.length);
+      let completedCount = existing.length;
+      for (let i = 0; i < existing.length; i++) {
+        const item = existing[i];
+        const index = item.index;
+        const size = item.size;
+        downloadedFiles[index] = `${tempDir}segment_${index}.ts`;
+        this.downloadedSize += size;
+      }
+
+      // 若启用“未完成时跳过”，且存在部分已完成但未全部完成，则直接跳过本次下载
+      if (this.skipIfIncomplete && completedCount > 0 && completedCount < this.tsList.length) {
+        console.log(M3U8Downloader.TAG, `检测到未完成进度(${completedCount}/${this.tsList.length})，已启用跳过，本次不下载。`);
+        this.updateProgressWithCount(completedCount);
+        return;
+      }
+
+      // 以现有片段为准同步进度文件
+      const completedArr: number[] = [];
+      for (let i = 0; i < existing.length; i++) {
+        completedArr.push(existing[i].index);
+      }
+      const record: ProgressRecord = { total: this.tsList.length, completed: completedArr };
+      await FileManager.saveProgress(tempDir, record);
+
+      // 并发下载所有TS分片（会跳过已完成的）
       console.log(M3U8Downloader.TAG,
-        `开始并发下载 ${this.tsList.length} 个TS片段，并发数: ${this.maxConcurrentDownloads}`);
-      const downloadedFiles: string[] = await this.downloadAllSegmentsConcurrently(tempDir, keyData);
+        `开始并发下载 ${this.tsList.length} 个TS片段，并发数: ${this.maxConcurrentDownloads}，已完成: ${completedCount}`);
+      this.updateProgressWithCount(completedCount);
+      const downloadedFilesResult: string[] = await this.downloadAllSegmentsConcurrently(tempDir, keyData, downloadedFiles);
 
       if (this.isCanceled) {
         await FileManager.cleanupTempFiles(downloadedFiles);
@@ -166,7 +202,9 @@ export class M3U8Downloader {
       await FileManager.mergeFiles(downloadedFiles, outputPath);
 
       // 清理临时文件
-      await FileManager.cleanupTempFiles(downloadedFiles);
+      await FileManager.cleanupTempFiles(downloadedFilesResult);
+      // 删除进度与目录
+      await FileManager.deleteDirRecursive(tempDir);
 
       // 记录结束时间和计算总耗时
       const endTime = Date.now();
@@ -204,9 +242,8 @@ export class M3U8Downloader {
   /**
    * 并发下载所有片段
    */
-  private async downloadAllSegmentsConcurrently(tempDir: string, keyData: Uint8Array | null): Promise<string[]> {
-    const downloadedFiles: string[] = new Array(this.tsList.length);
-    let completedCount = 0;
+  private async downloadAllSegmentsConcurrently(tempDir: string, keyData: Uint8Array | null, downloadedFiles: string[]): Promise<string[]> {
+    let completedCount = downloadedFiles.filter(p => !!p).length;
 
     console.log(M3U8Downloader.TAG,
       `开始并发下载 ${this.tsList.length} 个片段，最大并发数: ${this.maxConcurrentDownloads}`);
@@ -215,6 +252,11 @@ export class M3U8Downloader {
     const downloadTasks = this.tsList.map((tsUrl, index) => {
       return async (): Promise<void> => {
         try {
+          // 已存在则跳过
+          if (downloadedFiles[index]) {
+            console.log(M3U8Downloader.TAG, `片段 ${index + 1} 已存在，跳过下载`);
+            return;
+          }
           await this.downloadSingleSegmentWithRetry(index, tempDir, keyData, downloadedFiles);
           completedCount++;
           this.updateProgressWithCount(completedCount);
@@ -267,6 +309,9 @@ export class M3U8Downloader {
         downloadedFiles[index] = tempFile;
 
         this.downloadedSize += finalData.length;
+
+        // 追加保存进度
+        await FileManager.appendProgress(tempDir, index, this.tsList.length);
 
         console.log(M3U8Downloader.TAG, 
           `片段 ${index + 1} 下载成功: ${finalData.length} 字节`);
